@@ -1,5 +1,5 @@
 /*
-Copyright 2012-2013, Koichi Akabe <vbkaisetsu@gmail.com>
+Copyright 2012-2013 Koichi Akabe <vbkaisetsu@gmail.com>
 
 The original C++ source is distributed under the PD-like license.
 For more details, see:
@@ -28,28 +28,28 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <stdlib.h>
 #include "ttottable.h"
 
-int LoadGSUBTable(TTGSUBTable *table, FT_Bytes gsub)
+int LoadGPOSTable(TTGPOSTable *table, FT_Bytes gpos)
 {
-    table->header.Version = gsub[0] << 24 | gsub[1] << 16 | gsub[2] << 8 | gsub[3];
+    table->header.Version = gpos[0] << 24 | gpos[1] << 16 | gpos[2] << 8 | gpos[3];
     if(table->header.Version != 0x00010000)
     {
         return -1;
     }
-    table->header.ScriptList  = gsub[4] << 8 | gsub[5];
-    table->header.FeatureList = gsub[6] << 8 | gsub[7];
-    table->header.LookupList  = gsub[8] << 8 | gsub[9];
-    return GSUBParse(table, &gsub[table->header.ScriptList], &gsub[table->header.FeatureList], &gsub[table->header.LookupList]);
+    table->header.ScriptList  = gpos[4] << 8 | gpos[5];
+    table->header.FeatureList = gpos[6] << 8 | gpos[7];
+    table->header.LookupList  = gpos[8] << 8 | gpos[9];
+    return GPOSParse(table, &gpos[table->header.ScriptList], &gpos[table->header.FeatureList], &gpos[table->header.LookupList]);
 }
 
-int GSUBParse(TTGSUBTable *table, FT_Bytes scriptlist, FT_Bytes featurelist, FT_Bytes lookuplist)
+int GPOSParse(TTGPOSTable *table, FT_Bytes scriptlist, FT_Bytes featurelist, FT_Bytes lookuplist)
 {
     ParseScriptList(scriptlist, &table->ScriptList);
     ParseFeatureList(featurelist, &table->FeatureList);
-    GSUBParseLookupList(lookuplist, &table->LookupList);
+    GPOSParseLookupList(lookuplist, &table->LookupList);
     return 0;
 }
 
-void GSUBParseLookupList(FT_Bytes raw, TGSUBLookupList *rec)
+void GPOSParseLookupList(FT_Bytes raw, TGPOSLookupList *rec)
 {
     int i;
     FT_Bytes sp = raw;
@@ -59,97 +59,104 @@ void GSUBParseLookupList(FT_Bytes raw, TGSUBLookupList *rec)
         rec->Lookup = NULL;
         return;
     }
-    rec->Lookup = calloc(rec->LookupCount, sizeof(TGSUBLookup));
+    rec->Lookup = calloc(rec->LookupCount, sizeof(TGPOSLookup));
     for(i = 0; i < rec->LookupCount; i++)
     {
         uint16_t offset = GetUInt16(&sp);
-        GSUBParseLookup(&raw[offset], &rec->Lookup[i]);
+        GPOSParseLookup(&raw[offset], &rec->Lookup[i]);
     }
 }
 
-void GSUBParseLookup(FT_Bytes raw, TGSUBLookup *rec)
+void GPOSParseLookup(FT_Bytes raw, TGPOSLookup *rec)
 {
     int i;
     FT_Bytes sp = raw;
     rec->LookupType = GetUInt16(&sp);
     rec->LookupFlag = GetUInt16(&sp);
     rec->SubTableCount = GetUInt16(&sp);
+
     if(rec->SubTableCount <= 0)
     {
         rec->SubTable = NULL;
         return;
     }
-    rec->SubTable = calloc(rec->SubTableCount, sizeof(TGSUBSingleSubstFormat));
+    rec->SubTable = calloc(rec->SubTableCount, sizeof(TGPOSSinglePosFormat));
+
+    printf("SubTableCount: %d\n", rec->SubTableCount);
     if(rec->LookupType != 1)
         return;
+
     for(i = 0; i < rec->SubTableCount; i++)
     {
         uint16_t offset = GetUInt16(&sp);
-        GSUBParseSingleSubst(&raw[offset], &rec->SubTable[i]);
+        GPOSParseSinglePos(&raw[offset], &rec->SubTable[i]);
     }
 }
 
-void GSUBParseSingleSubst(FT_Bytes raw, TGSUBSingleSubstFormat *rec)
+void GPOSParseSinglePos(FT_Bytes raw, TGPOSSinglePosFormat *rec)
 {
+    int i, j;
     FT_Bytes sp = raw;
     uint16_t Format = GetUInt16(&sp);
     switch(Format)
     {
     case 1:
-        rec->SubstFormat = 1;
-        GSUBParseSingleSubstFormat1(raw, rec);
+        rec->PosFormat = 1;
         break;
     case 2:
-        rec->SubstFormat = 2;
-        GSUBParseSingleSubstFormat2(raw, rec);
+        rec->PosFormat = 2;
         break;
     default:
-        rec->SubstFormat = 0;
-    }
-}
-
-void GSUBParseSingleSubstFormat1(FT_Bytes raw, TGSUBSingleSubstFormat *rec)
-{
-    FT_Bytes sp = raw;
-    GetUInt16(&sp);
-    uint16_t offset = GetUInt16(&sp);
-    ParseCoverage(&raw[offset], &rec->Coverage);
-    rec->DeltaGlyphID = GetInt16(&sp);
-}
-
-void GSUBParseSingleSubstFormat2(FT_Bytes raw, TGSUBSingleSubstFormat *rec)
-{
-    int i;
-    FT_Bytes sp = raw;
-    GetUInt16(&sp);
-    uint16_t offset = GetUInt16(&sp);
-    ParseCoverage(&raw[offset], &rec->Coverage);
-    rec->GlyphCount = GetUInt16(&sp);
-    if(rec->GlyphCount <= 0)
-    {
-        rec->Substitute = NULL;
+        rec->PosFormat = 0;
         return;
     }
-    rec->Substitute = calloc(rec->GlyphCount, sizeof(uint16_t));
-    for(i = 0; i < rec->GlyphCount; i++)
+    uint16_t offset = GetUInt16(&sp);
+    ParseCoverage(&raw[offset], &rec->Coverage);
+    rec->ValueFormat = GetUInt16(&sp);
+    if(rec->PosFormat == 2)
     {
-        rec->Substitute[i] = GetUInt16(&sp);
+        rec->ValueCount = GetUInt16(&sp);
+    }
+    else
+    {
+        rec->ValueCount = 1;
+    }
+    rec->Value = calloc(rec->ValueCount, sizeof(TGPOSValueRecord));
+    for(i = 0; i < rec->ValueCount; i++)
+    {
+        rec->Value[i].XPlacement = rec->ValueFormat & 0x0001 ? GetInt16(&sp) : 0;
+        rec->Value[i].YPlacement = (rec->ValueFormat >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
+        rec->Value[i].XAdvance = (rec->ValueFormat >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
+        rec->Value[i].YAdvance = (rec->ValueFormat >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
+        /* XxDevice is not supported */
+        rec->Value[i].XPlaDevice = (rec->ValueFormat >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
+        rec->Value[i].YPlaDevice = (rec->ValueFormat >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
+        rec->Value[i].XAdvDevice = (rec->ValueFormat >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
+        rec->Value[i].YAdvDevice = (rec->ValueFormat >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
+        for(j = 0; j < 8; j++)
+        {
+            if((rec->ValueFormat >>= 1) & 0x0001)
+            {
+                GetInt16(&sp);
+            }
+        }
     }
 }
 
-int GSUBGetVerticalGlyph(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vglyphnum)
+int GPOSGetHalfMetric(TTGPOSTable *table, uint32_t glyphnum,
+                      int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
 {
     int i, j;
     uint32_t tag[] = {
-        (uint8_t)'v' << 24 |
-        (uint8_t)'r' << 16 |
-        (uint8_t)'t' <<  8 |
-        (uint8_t)'2',
+        (uint8_t)'h' << 24 |
+        (uint8_t)'a' << 16 |
+        (uint8_t)'l' <<  8 |
+        (uint8_t)'t',
 
         (uint8_t)'v' << 24 |
-        (uint8_t)'e' << 16 |
-        (uint8_t)'r' <<  8 |
-        (uint8_t)'t',
+        (uint8_t)'h' << 16 |
+        (uint8_t)'a' <<  8 |
+        (uint8_t)'l',
     };
     if(!table->loaded)
     {
@@ -161,7 +168,7 @@ int GSUBGetVerticalGlyph(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vglyph
         {
             if(table->FeatureList.FeatureRecord[j].FeatureTag == tag[i])
             {
-                if(GSUBGetVerticalGlyphSub(table, glyphnum, vglyphnum, &table->FeatureList.FeatureRecord[j].Feature) == 0)
+                if(GPOSGetHalfMetricSub(table, glyphnum, XPlacement, YPlacement, XAdvance, YAdvance, &table->FeatureList.FeatureRecord[j].Feature) == 0)
                 {
                     return 0;
                 }
@@ -171,7 +178,8 @@ int GSUBGetVerticalGlyph(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vglyph
     return -1;
 }
 
-int GSUBGetVerticalGlyphSub(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vglyphnum, TFeature *Feature)
+int GPOSGetHalfMetricSub(TTGPOSTable *table, uint32_t glyphnum,
+                         int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance, TFeature *Feature)
 {
     int i, index;
     for(i = 0; i < Feature->LookupCount; i++)
@@ -183,7 +191,7 @@ int GSUBGetVerticalGlyphSub(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vgl
         }
         if(table->LookupList.Lookup[index].LookupType == 1)
         {
-            if(GSUBGetVerticalGlyphSub2(glyphnum, vglyphnum, &table->LookupList.Lookup[index]) == 0)
+            if(GPOSGetHalfMetricSub2(glyphnum, XPlacement, YPlacement, XAdvance, YAdvance, &table->LookupList.Lookup[index]) == 0)
             {
                 return 0;
             }
@@ -192,28 +200,37 @@ int GSUBGetVerticalGlyphSub(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vgl
     return -1;
 }
 
-int GSUBGetVerticalGlyphSub2(uint32_t glyphnum, uint32_t *vglyphnum, TGSUBLookup *Lookup)
+int GPOSGetHalfMetricSub2(uint32_t glyphnum, int16_t *XPlacement, int16_t *YPlacement,
+                                             int16_t *XAdvance, int16_t *YAdvance, TGPOSLookup *Lookup)
 {
     int i, index;
-    TGSUBSingleSubstFormat *tbl;
+    TGPOSSinglePosFormat *tbl;
     for(i = 0; i < Lookup->SubTableCount; i++)
     {
-        switch(Lookup->SubTable[i].SubstFormat)
+        switch(Lookup->SubTable[i].PosFormat)
         {
         case 1:
             tbl = &Lookup->SubTable[i];
             if(GetCoverageIndex(&tbl->Coverage, glyphnum) >= 0)
             {
-                *vglyphnum = glyphnum + tbl->DeltaGlyphID;
+                TGPOSValueRecord vals = tbl->Value[0];
+                *XPlacement = vals.XPlacement;
+                *YPlacement = vals.YPlacement;
+                *XAdvance = vals.XAdvance;
+                *YAdvance = vals.YAdvance;
                 return 0;
             }
             break;
         case 2:
             tbl = &Lookup->SubTable[i];
             index = GetCoverageIndex(&tbl->Coverage, glyphnum);
-            if(0 <= index && index < tbl->GlyphCount)
+            if(0 <= index && index < tbl->ValueCount)
             {
-                *vglyphnum = tbl->Substitute[index];
+                TGPOSValueRecord vals = tbl->Value[index];
+                *XPlacement = vals.XPlacement;
+                *YPlacement = vals.YPlacement;
+                *XAdvance = vals.XAdvance;
+                *YAdvance = vals.YAdvance;
                 return 0;
             }
             break;
@@ -222,7 +239,7 @@ int GSUBGetVerticalGlyphSub2(uint32_t glyphnum, uint32_t *vglyphnum, TGSUBLookup
     return -1;
 }
 
-void init_gsubtable(TTGSUBTable *table)
+void init_gpostable(TTGPOSTable *table)
 {
     table->loaded = 0;
     table->ScriptList.ScriptCount = 0;
@@ -233,7 +250,7 @@ void init_gsubtable(TTGSUBTable *table)
     table->LookupList.Lookup = NULL;
 }
 
-void free_gsubtable(TTGSUBTable *table)
+void free_gpostable(TTGPOSTable *table)
 {
     if(table->loaded == 0)
     {
@@ -265,7 +282,7 @@ void free_gsubtable(TTGSUBTable *table)
     for(i = 0; i < lup_cnt; i++)
     {
         int ls_cnt = lup[i].SubTableCount;
-        TGSUBSingleSubstFormat *subt = lup[i].SubTable;
+        TGPOSSinglePosFormat *subt = lup[i].SubTable;
         for(j = 0; j < ls_cnt; j++)
         {
             if(subt[j].Coverage.CoverageFormat == 1) {
@@ -273,11 +290,9 @@ void free_gsubtable(TTGSUBTable *table)
             } else if(subt[j].Coverage.CoverageFormat == 2) {
             	free(subt[j].Coverage.RangeRecord);
             }
-            if(subt[j].SubstFormat == 2)
-                free(subt[j].Substitute);
+            free(subt[j].Value);
         }
         free(subt);
     }
     free(lup);
 }
-

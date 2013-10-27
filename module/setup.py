@@ -140,7 +140,7 @@ cython("renpy.text.texwrap")
 
 cython(
     "renpy.text.ftfont",
-    [ "ftsupport.c", "ttgsubtable.c" ],
+    [ "ftsupport.c", "ttottable.c", "ttgsubtable.c", "ttgpostable.c" ],
     libs = sdl + [ 'freetype', 'z', 'm' ])
 
 find_unnecessary_gen()
