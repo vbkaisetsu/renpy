@@ -6,9 +6,10 @@ cdef extern from "stdint.h":
     ctypedef signed long int32_t
     ctypedef unsigned long uint32_t
 
-cdef extern from "ttgsubtable.h":
+cdef extern from "ttottable.h":
 
-    ctypedef struct tt_gsub_header:
+    # common
+    ctypedef struct tt_header:
         uint32_t Version
         uint16_t ScriptList
         uint16_t FeatureList
@@ -62,38 +63,73 @@ cdef extern from "ttgsubtable.h":
         uint16_t RangeCount
         TRangeRecord *RangeRecord
 
-    ctypedef struct TSingleSubstFormat:
+    # GSUB
+    ctypedef struct TGSUBSingleSubstFormat:
         uint16_t SubstFormat
         TCoverageFormat Coverage
         int16_t DeltaGlyphID
         uint16_t GlyphCount
         uint16_t *Substitute
 
-    ctypedef struct TLookup:
+    ctypedef struct TGSUBLookup:
         uint16_t LookupType
         uint16_t LookupFlag
         uint16_t SubTableCount
-        TSingleSubstFormat *SubTable
+        TGSUBSingleSubstFormat *SubTable
 
-    ctypedef struct TLookupList:
+    ctypedef struct TGSUBLookupList:
         int LookupCount
-        TLookup *Lookup
+        TGSUBLookup *Lookup
 
     ctypedef struct TTGSUBTable:
         int loaded
-        tt_gsub_header header
+        tt_header header
         TScriptList ScriptList
         TFeatureList FeatureList
-        TLookupList LookupList
-
-    ctypedef struct TTGSUBTable:
+        TGSUBLookupList LookupList
+    
+    # GPOS
+    ctypedef struct TGPOSValueRecord:
+        int16_t XPlacement
+        int16_t YPlacement
+        int16_t XAdvance
+        int16_t YAdvance
+        int16_t XPlaDevice
+        int16_t YPlaDevice
+        int16_t XAdvDevice
+        int16_t YAdvDevice
+    
+    ctypedef struct TGPOSSinglePosFormat:
+        uint16_t PosFormat
+        TCoverageFormat Coverage
+        uint16_t ValueFormat
+        uint16_t ValueCount
+        TGPOSValueRecord *Value
+        
+    ctypedef struct TGPOSLookup:
+        uint16_t LookupType
+        uint16_t LookupFlag
+        uint16_t SubTableCount
+        TGPOSSinglePosFormat *SubTable
+        
+    ctypedef struct TGPOSLookupList:
+        int LookupCount
+        TGPOSLookup *Lookup
+        
+    ctypedef struct TTGPOSTable:
         int loaded
-        tt_gsub_header header
+        tt_header header
         TScriptList ScriptList
         TFeatureList FeatureList
-        TLookupList LookupList
+        TGPOSLookupList LookupList
 
-    void LoadGSUBTable(TTGSUBTable *table, FT_Face face)
+    void LoadOTTable(TTGSUBTable *gsubtable, TTGPOSTable *gpostable, FT_Face face)
+
     int GetVerticalGlyph(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vglyphnum)
     void init_gsubtable(TTGSUBTable *table)
     void free_gsubtable(TTGSUBTable *table)
+
+    int GetHalfPosInfo(TTGPOSTable *table, uint32_t glyphnum, int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
+    int GetPropPosInfo(TTGPOSTable *table, uint32_t glyphnum, int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
+    void init_gpostable(TTGPOSTable *table)
+    void free_gpostable(TTGPOSTable *table)

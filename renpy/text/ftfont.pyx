@@ -3,7 +3,7 @@
 
 from pygame cimport *
 from freetype cimport *
-from ttgsubtable cimport *
+from ttottable cimport *
 from textsupport cimport Glyph, SPLIT_INSTEAD
 import traceback
 
@@ -147,6 +147,7 @@ cdef class FTFont:
         FTFace face_object
         FT_Face face
         TTGSUBTable gsubtable
+        TTGPOSTable gpostable
 
         # A cache of various properties.
         float size
@@ -185,6 +186,7 @@ cdef class FTFont:
             FT_Bitmap_New(&(self.cache[i].bitmap))
 
         init_gsubtable(&self.gsubtable)
+        init_gpostable(&self.gpostable)
 
     def __dealloc__(self):
         for i from 0 <= i < 256:
@@ -193,7 +195,7 @@ cdef class FTFont:
         if self.stroker != NULL:
             FT_Stroker_Done(self.stroker)
 
-        free_gsubtable(&self.gsubtable)
+        free_gpostable(&self.gpostable)
 
 
     def __init__(self, face, float size, float bold, bint italic, int outline, bint antialias, bint vertical):
@@ -211,7 +213,7 @@ cdef class FTFont:
         self.antialias = antialias
         self.vertical = vertical
 
-        LoadGSUBTable(&self.gsubtable, self.face)
+        LoadOTTable(&self.gsubtable, &self.gpostable, self.face)
 
         if outline == 0:
             self.stroker = NULL;
@@ -294,8 +296,13 @@ cdef class FTFont:
 
         cdef int overhang
         cdef FT_Glyph_Metrics metrics
+        
+        cdef int16_t XPlacement = 0, YPlacement = 0, XAdvance = 0, YAdvance = 0
+        cdef float scale
 
         face = self.face
+        
+        scale = float(face.size.metrics.height) / face.height
 
         if self.vertical:
             if GetVerticalGlyph(&self.gsubtable, index, &vindex) == 0:
@@ -332,6 +339,9 @@ cdef class FTFont:
                 shear.yy = 1 << 16
 
                 FT_Outline_Transform(&(<FT_OutlineGlyph> g).outline, &shear)
+            
+            GetHalfPosInfo(&self.gpostable, index, &XPlacement, &YPlacement, &XAdvance, &YAdvance)
+            FT_Outline_Translate(&(<FT_OutlineGlyph> g).outline, int(XPlacement * scale), int(YPlacement * scale))
 
             if glyph_rotate != 0:
                 metrics = face.glyph.metrics
@@ -389,12 +399,12 @@ cdef class FTFont:
 
         # rv.width = FT_CEIL(face.glyph.metrics.width) + self.expand
         if glyph_rotate == 1:
-            rv.advance = face.glyph.metrics.vertAdvance / 64.0 + self.expand + overhang
+            rv.advance = (face.glyph.metrics.vertAdvance + YAdvance * scale) / 64.0 + self.expand + overhang
         elif glyph_rotate == 2:
             # rv.advance = (face.ascender - face.descender) / 64.0 + self.expand + overhang
             rv.advance = self.lineskip + overhang
         else:
-            rv.advance = face.glyph.metrics.horiAdvance / 64.0 + self.expand + overhang
+            rv.advance = (face.glyph.metrics.horiAdvance + XAdvance * scale) / 64.0 + self.expand + overhang
 
         rv.bitmap_left = bg.left + self.expand / 2
         rv.bitmap_top = bg.top - self.expand / 2

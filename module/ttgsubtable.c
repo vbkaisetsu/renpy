@@ -137,7 +137,7 @@ void GSUBParseSingleSubstFormat2(FT_Bytes raw, TGSUBSingleSubstFormat *rec)
     }
 }
 
-int GSUBGetVerticalGlyph(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vglyphnum)
+int GetVerticalGlyph(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vglyphnum)
 {
     int i, j;
     uint32_t tag[] = {
@@ -161,7 +161,7 @@ int GSUBGetVerticalGlyph(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vglyph
         {
             if(table->FeatureList.FeatureRecord[j].FeatureTag == tag[i])
             {
-                if(GSUBGetVerticalGlyphSub(table, glyphnum, vglyphnum, &table->FeatureList.FeatureRecord[j].Feature) == 0)
+                if(GetVerticalGlyphSub(table, glyphnum, vglyphnum, &table->FeatureList.FeatureRecord[j].Feature) == 0)
                 {
                     return 0;
                 }
@@ -171,7 +171,7 @@ int GSUBGetVerticalGlyph(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vglyph
     return -1;
 }
 
-int GSUBGetVerticalGlyphSub(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vglyphnum, TFeature *Feature)
+int GetVerticalGlyphSub(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vglyphnum, TFeature *Feature)
 {
     int i, index;
     for(i = 0; i < Feature->LookupCount; i++)
@@ -183,7 +183,7 @@ int GSUBGetVerticalGlyphSub(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vgl
         }
         if(table->LookupList.Lookup[index].LookupType == 1)
         {
-            if(GSUBGetVerticalGlyphSub2(glyphnum, vglyphnum, &table->LookupList.Lookup[index]) == 0)
+            if(GetVerticalGlyphSub2(glyphnum, vglyphnum, &table->LookupList.Lookup[index]) == 0)
             {
                 return 0;
             }
@@ -192,7 +192,7 @@ int GSUBGetVerticalGlyphSub(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vgl
     return -1;
 }
 
-int GSUBGetVerticalGlyphSub2(uint32_t glyphnum, uint32_t *vglyphnum, TGSUBLookup *Lookup)
+int GetVerticalGlyphSub2(uint32_t glyphnum, uint32_t *vglyphnum, TGSUBLookup *Lookup)
 {
     int i, index;
     TGSUBSingleSubstFormat *tbl;

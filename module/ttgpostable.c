@@ -82,7 +82,6 @@ void GPOSParseLookup(FT_Bytes raw, TGPOSLookup *rec)
     }
     rec->SubTable = calloc(rec->SubTableCount, sizeof(TGPOSSinglePosFormat));
 
-    printf("SubTableCount: %d\n", rec->SubTableCount);
     if(rec->LookupType != 1)
         return;
 
@@ -143,10 +142,10 @@ void GPOSParseSinglePos(FT_Bytes raw, TGPOSSinglePosFormat *rec)
     }
 }
 
-int GPOSGetHalfMetric(TTGPOSTable *table, uint32_t glyphnum,
-                      int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
+
+int GetHalfPosInfo(TTGPOSTable *table, uint32_t glyphnum,
+                   int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
 {
-    int i, j;
     uint32_t tag[] = {
         (uint8_t)'h' << 24 |
         (uint8_t)'a' << 16 |
@@ -158,6 +157,31 @@ int GPOSGetHalfMetric(TTGPOSTable *table, uint32_t glyphnum,
         (uint8_t)'a' <<  8 |
         (uint8_t)'l',
     };
+    return GPOSSinglePosInfo(table, tag, glyphnum, XPlacement, YPlacement, XAdvance, YAdvance);
+}
+
+
+int GetPropPosInfo(TTGPOSTable *table, uint32_t glyphnum,
+                   int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
+{
+    uint32_t tag[] = {
+        (uint8_t)'p' << 24 |
+        (uint8_t)'a' << 16 |
+        (uint8_t)'l' <<  8 |
+        (uint8_t)'t',
+
+        (uint8_t)'v' << 24 |
+        (uint8_t)'p' << 16 |
+        (uint8_t)'a' <<  8 |
+        (uint8_t)'l',
+    };
+    return GPOSSinglePosInfo(table, tag, glyphnum, XPlacement, YPlacement, XAdvance, YAdvance);
+}
+
+int GPOSSinglePosInfo(TTGPOSTable *table, uint32_t tag[], uint32_t glyphnum,
+                      int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
+{
+    int i, j;
     if(!table->loaded)
     {
         return -1;
@@ -168,7 +192,7 @@ int GPOSGetHalfMetric(TTGPOSTable *table, uint32_t glyphnum,
         {
             if(table->FeatureList.FeatureRecord[j].FeatureTag == tag[i])
             {
-                if(GPOSGetHalfMetricSub(table, glyphnum, XPlacement, YPlacement, XAdvance, YAdvance, &table->FeatureList.FeatureRecord[j].Feature) == 0)
+                if(GPOSSinglePosInfoSub(table, glyphnum, XPlacement, YPlacement, XAdvance, YAdvance, &table->FeatureList.FeatureRecord[j].Feature) == 0)
                 {
                     return 0;
                 }
@@ -178,7 +202,7 @@ int GPOSGetHalfMetric(TTGPOSTable *table, uint32_t glyphnum,
     return -1;
 }
 
-int GPOSGetHalfMetricSub(TTGPOSTable *table, uint32_t glyphnum,
+int GPOSSinglePosInfoSub(TTGPOSTable *table, uint32_t glyphnum,
                          int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance, TFeature *Feature)
 {
     int i, index;
@@ -191,7 +215,7 @@ int GPOSGetHalfMetricSub(TTGPOSTable *table, uint32_t glyphnum,
         }
         if(table->LookupList.Lookup[index].LookupType == 1)
         {
-            if(GPOSGetHalfMetricSub2(glyphnum, XPlacement, YPlacement, XAdvance, YAdvance, &table->LookupList.Lookup[index]) == 0)
+            if(GPOSSinglePosInfoSub2(glyphnum, XPlacement, YPlacement, XAdvance, YAdvance, &table->LookupList.Lookup[index]) == 0)
             {
                 return 0;
             }
@@ -200,7 +224,7 @@ int GPOSGetHalfMetricSub(TTGPOSTable *table, uint32_t glyphnum,
     return -1;
 }
 
-int GPOSGetHalfMetricSub2(uint32_t glyphnum, int16_t *XPlacement, int16_t *YPlacement,
+int GPOSSinglePosInfoSub2(uint32_t glyphnum, int16_t *XPlacement, int16_t *YPlacement,
                                              int16_t *XAdvance, int16_t *YAdvance, TGPOSLookup *Lookup)
 {
     int i, index;
@@ -278,7 +302,7 @@ void free_gpostable(TTGPOSTable *table)
     }
     free(ftr_rcd);
     int lup_cnt = table->LookupList.LookupCount;
-    TGSUBLookup *lup = table->LookupList.Lookup;
+    TGPOSLookup *lup = table->LookupList.Lookup;
     for(i = 0; i < lup_cnt; i++)
     {
         int ls_cnt = lup[i].SubTableCount;

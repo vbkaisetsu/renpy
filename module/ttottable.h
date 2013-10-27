@@ -161,6 +161,12 @@ typedef struct
 } TTGPOSTable;
 
 /* common */
+uint8_t GetUInt8(FT_Bytes *p);
+int16_t GetInt16(FT_Bytes *p);
+uint16_t GetUInt16(FT_Bytes *p);
+int32_t GetInt32(FT_Bytes *p);
+uint32_t GetUInt32(FT_Bytes *p);
+
 void LoadOTTable(TTGSUBTable *gsubtable, TTGPOSTable *gpostable, FT_Face face);
 
 void ParseScriptList(FT_Bytes raw, TScriptList *rec);
@@ -188,9 +194,9 @@ void GSUBParseSingleSubst(FT_Bytes raw, TGSUBSingleSubstFormat *rec);
 void GSUBParseSingleSubstFormat1(FT_Bytes raw, TGSUBSingleSubstFormat *rec);
 void GSUBParseSingleSubstFormat2(FT_Bytes raw, TGSUBSingleSubstFormat *rec);
 
-int GSUBGetVerticalGlyph(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vglyphnum);
-int GSUBGetVerticalGlyphSub(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vglyphnum, TFeature *Feature);
-int GSUBGetVerticalGlyphSub2(uint32_t glyphnum, uint32_t *vglyphnum, TGSUBLookup *Lookup);
+int GetVerticalGlyph(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vglyphnum);
+int GetVerticalGlyphSub(TTGSUBTable *table, uint32_t glyphnum, uint32_t *vglyphnum, TFeature *Feature);
+int GetVerticalGlyphSub2(uint32_t glyphnum, uint32_t *vglyphnum, TGSUBLookup *Lookup);
 
 void init_gsubtable(TTGSUBTable *table);
 void free_gsubtable(TTGSUBTable *table);
@@ -205,11 +211,16 @@ void GPOSParseLookup(FT_Bytes raw, TGPOSLookup *rec);
 
 void GPOSParseSinglePos(FT_Bytes raw, TGPOSSinglePosFormat *rec);
 
-int GPOSGetHalfMetric(TTGPOSTable *table, uint32_t glyphnum,
+int GetHalfPosInfo(TTGPOSTable *table, uint32_t glyphnum,
+                   int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance);
+int GetPropPosInfo(TTGPOSTable *table, uint32_t glyphnum,
+                   int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance);
+
+int GPOSSinglePosInfo(TTGPOSTable *table, uint32_t tag[], uint32_t glyphnum,
                       int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance);
-int GPOSGetHalfMetricSub(TTGPOSTable *table, uint32_t glyphnum,
+int GPOSSinglePosInfoSub(TTGPOSTable *table, uint32_t glyphnum,
                          int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance, TFeature *Feature);
-int GPOSGetHalfMetricSub2(uint32_t glyphnum, int16_t *XPlacement, int16_t *YPlacement,
+int GPOSSinglePosInfoSub2(uint32_t glyphnum, int16_t *XPlacement, int16_t *YPlacement,
                                              int16_t *XAdvance, int16_t *YAdvance, TGPOSLookup *Lookup);
 void init_gpostable(TTGPOSTable *table);
 void free_gpostable(TTGPOSTable *table);
