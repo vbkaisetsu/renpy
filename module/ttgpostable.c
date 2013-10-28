@@ -110,6 +110,7 @@ void GPOSParseSinglePos(FT_Bytes raw, TGPOSSinglePosFormat *rec)
         return;
     }
     uint16_t offset = GetUInt16(&sp);
+    uint16_t vf_tmp;
     ParseCoverage(&raw[offset], &rec->Coverage);
     rec->ValueFormat = GetUInt16(&sp);
     if(rec->PosFormat == 2)
@@ -123,18 +124,19 @@ void GPOSParseSinglePos(FT_Bytes raw, TGPOSSinglePosFormat *rec)
     rec->Value = calloc(rec->ValueCount, sizeof(TGPOSValueRecord));
     for(i = 0; i < rec->ValueCount; i++)
     {
-        rec->Value[i].XPlacement = rec->ValueFormat & 0x0001 ? GetInt16(&sp) : 0;
-        rec->Value[i].YPlacement = (rec->ValueFormat >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
-        rec->Value[i].XAdvance = (rec->ValueFormat >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
-        rec->Value[i].YAdvance = (rec->ValueFormat >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
+        vf_tmp = rec->ValueFormat;
+        rec->Value[i].XPlacement = vf_tmp & 0x0001 ? GetInt16(&sp) : 0;
+        rec->Value[i].YPlacement = (vf_tmp >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
+        rec->Value[i].XAdvance = (vf_tmp >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
+        rec->Value[i].YAdvance = (vf_tmp >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
         /* XxDevice is not supported */
-        rec->Value[i].XPlaDevice = (rec->ValueFormat >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
-        rec->Value[i].YPlaDevice = (rec->ValueFormat >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
-        rec->Value[i].XAdvDevice = (rec->ValueFormat >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
-        rec->Value[i].YAdvDevice = (rec->ValueFormat >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
+        rec->Value[i].XPlaDevice = (vf_tmp >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
+        rec->Value[i].YPlaDevice = (vf_tmp >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
+        rec->Value[i].XAdvDevice = (vf_tmp >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
+        rec->Value[i].YAdvDevice = (vf_tmp >>= 1) & 0x0001 ? GetInt16(&sp) : 0;
         for(j = 0; j < 8; j++)
         {
-            if((rec->ValueFormat >>= 1) & 0x0001)
+            if((vf_tmp >>= 1) & 0x0001)
             {
                 GetInt16(&sp);
             }
@@ -142,8 +144,7 @@ void GPOSParseSinglePos(FT_Bytes raw, TGPOSSinglePosFormat *rec)
     }
 }
 
-
-int GetHalfPosInfo(TTGPOSTable *table, uint32_t glyphnum,
+int GetHHalfPosInfo(TTGPOSTable *table, uint32_t glyphnum,
                    int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
 {
     uint32_t tag[] = {
@@ -151,17 +152,25 @@ int GetHalfPosInfo(TTGPOSTable *table, uint32_t glyphnum,
         (uint8_t)'a' << 16 |
         (uint8_t)'l' <<  8 |
         (uint8_t)'t',
-
-        (uint8_t)'v' << 24 |
-        (uint8_t)'h' << 16 |
-        (uint8_t)'a' <<  8 |
-        (uint8_t)'l',
+        0,
     };
     return GPOSSinglePosInfo(table, tag, glyphnum, XPlacement, YPlacement, XAdvance, YAdvance);
 }
 
+int GetVHalfPosInfo(TTGPOSTable *table, uint32_t glyphnum,
+                   int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
+{
+    uint32_t tag[] = {
+        (uint8_t)'v' << 24 |
+        (uint8_t)'h' << 16 |
+        (uint8_t)'a' <<  8 |
+        (uint8_t)'l',
+        0,
+    };
+    return GPOSSinglePosInfo(table, tag, glyphnum, XPlacement, YPlacement, XAdvance, YAdvance);
+}
 
-int GetPropPosInfo(TTGPOSTable *table, uint32_t glyphnum,
+int GetHPropPosInfo(TTGPOSTable *table, uint32_t glyphnum,
                    int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
 {
     uint32_t tag[] = {
@@ -169,11 +178,20 @@ int GetPropPosInfo(TTGPOSTable *table, uint32_t glyphnum,
         (uint8_t)'a' << 16 |
         (uint8_t)'l' <<  8 |
         (uint8_t)'t',
+        0,
+    };
+    return GPOSSinglePosInfo(table, tag, glyphnum, XPlacement, YPlacement, XAdvance, YAdvance);
+}
 
+int GetVPropPosInfo(TTGPOSTable *table, uint32_t glyphnum,
+                   int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
+{
+    uint32_t tag[] = {
         (uint8_t)'v' << 24 |
         (uint8_t)'p' << 16 |
         (uint8_t)'a' <<  8 |
         (uint8_t)'l',
+        0,
     };
     return GPOSSinglePosInfo(table, tag, glyphnum, XPlacement, YPlacement, XAdvance, YAdvance);
 }
@@ -184,9 +202,10 @@ int GPOSSinglePosInfo(TTGPOSTable *table, uint32_t tag[], uint32_t glyphnum,
     int i, j;
     if(!table->loaded)
     {
+        printf("not loaded\n");
         return -1;
     }
-    for(i = 0; i < 2; i++)
+    for(i = 0; tag[i] != 0; i++)
     {
         for(j = 0; j < table->FeatureList.FeatureCount; j++)
         {

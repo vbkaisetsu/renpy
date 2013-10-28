@@ -340,8 +340,20 @@ cdef class FTFont:
 
                 FT_Outline_Transform(&(<FT_OutlineGlyph> g).outline, &shear)
             
-            GetHalfPosInfo(&self.gpostable, index, &XPlacement, &YPlacement, &XAdvance, &YAdvance)
+            """
+            if self.spacing == 1:
+                if self.vertical:
+                    GetVHalfPosInfo(&self.gpostable, index, &XPlacement, &YPlacement, &XAdvance, &YAdvance)
+                else:
+                    GetHHalfPosInfo(&self.gpostable, index, &XPlacement, &YPlacement, &XAdvance, &YAdvance)
+            elif self.spacing == 2:
+                if self.vertical:
+                    GetVPropPosInfo(&self.gpostable, index, &XPlacement, &YPlacement, &XAdvance, &YAdvance)
+                else:
+                    GetHPropPosInfo(&self.gpostable, index, &XPlacement, &YPlacement, &XAdvance, &YAdvance)
+
             FT_Outline_Translate(&(<FT_OutlineGlyph> g).outline, int(XPlacement * scale), int(YPlacement * scale))
+            """
 
             if glyph_rotate != 0:
                 metrics = face.glyph.metrics

@@ -129,7 +129,9 @@ cdef extern from "ttottable.h":
     void init_gsubtable(TTGSUBTable *table)
     void free_gsubtable(TTGSUBTable *table)
 
-    int GetHalfPosInfo(TTGPOSTable *table, uint32_t glyphnum, int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
-    int GetPropPosInfo(TTGPOSTable *table, uint32_t glyphnum, int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
+    int GetHHalfPosInfo(TTGPOSTable *table, uint32_t glyphnum, int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
+    int GetVHalfPosInfo(TTGPOSTable *table, uint32_t glyphnum, int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
+    int GetHPropPosInfo(TTGPOSTable *table, uint32_t glyphnum, int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
+    int GetVPropPosInfo(TTGPOSTable *table, uint32_t glyphnum, int16_t *XPlacement, int16_t *YPlacement, int16_t *XAdvance, int16_t *YAdvance)
     void init_gpostable(TTGPOSTable *table)
     void free_gpostable(TTGPOSTable *table)
