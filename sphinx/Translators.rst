@@ -4,11 +4,12 @@ For Documentation Translators
 Make translation templates
 --------------------------
 
+sphinx supports Gettext format to manage translations.
 To make translation templates, run the following command in ``sphinx`` directory::
 
     $ make gettext
 
-Then, *.pot files are created in ``sphinx/locale``.
+Then, POT files are created in ``sphinx/locale``.
 
 
 Translate into your language
